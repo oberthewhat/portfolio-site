@@ -1,0 +1,127 @@
+.thrillnerds-section {
+  background: var(--charcoal);
+  padding: 5rem 0;
+}
+
+.tn-card {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 4rem;
+  align-items: center;
+}
+
+.tn-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 0.5rem;
+}
+
+.tn-title {
+  font-size: 44px;
+  font-weight: 700;
+  color: var(--warm-white);
+  letter-spacing: -1.5px;
+  margin-bottom: 1.25rem;
+  line-height: 1;
+}
+
+.tn-desc {
+  color: rgba(253, 249, 243, 0.58);
+  font-size: 15px;
+  line-height: 1.75;
+  margin-bottom: 1rem;
+}
+
+.tn-platforms {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 1.75rem;
+}
+
+.tn-platform {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px 16px;
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.tn-platform:hover {
+  background: rgba(232, 132, 42, 0.12);
+  border-color: rgba(232, 132, 42, 0.3);
+}
+
+.tn-platform-icon { font-size: 20px; flex-shrink: 0; }
+
+.tn-platform-info { flex: 1; }
+
+.tn-platform-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.tn-platform-handle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.tn-platform-arrow {
+  color: var(--amber);
+  font-size: 16px;
+}
+
+/* Right visual */
+.tn-right {
+  display: flex;
+  justify-content: center;
+}
+
+.tn-visual {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 3rem 2rem;
+  text-align: center;
+  width: 100%;
+}
+
+.tn-logo-big { font-size: 72px; margin-bottom: 1rem; }
+
+.tn-logo-label {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--warm-white);
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+}
+
+.tn-logo-sub {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 1.5rem;
+}
+
+.tn-coming-soon {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 100px;
+  background: rgba(232, 132, 42, 0.18);
+  color: var(--amber-light);
+}
+
+@media (max-width: 680px) {
+  .tn-card { grid-template-columns: 1fr; gap: 2rem; }
+  .tn-right { display: none; }
+  .tn-title { font-size: 32px; }
+}
