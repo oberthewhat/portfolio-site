@@ -3,6 +3,7 @@ import Nav from './components/Nav';
 import Hero from './sections/Hero';
 import About from './sections/About';
 import Skills from './sections/Skills';
+import WordPress from './sections/WordPress';
 import Work from './sections/Work';
 import Projects from './sections/Projects';
 import Lab from './sections/Lab';
@@ -21,6 +22,10 @@ function App() {
           <hr className="divider" />
         </div>
         <Skills />
+        <div className="container" style={{maxWidth:'880px',margin:'0 auto'}}>
+          <hr className="divider" />
+        </div>
+        <WordPress />
         <div className="container" style={{maxWidth:'880px',margin:'0 auto'}}>
           <hr className="divider" />
         </div>

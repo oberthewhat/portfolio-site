@@ -8,8 +8,13 @@ const skillGroups = [
   },
   {
     label: 'WordPress',
-    skills: ['Custom themes', 'Custom post types', 'Advanced Custom Fields', 'Beaver Builder', 'WooCommerce', 'CMS customization'],
-    highlight: ['Custom themes', 'Custom post types'],
+    skills: ['Custom themes', 'Custom post types', 'Advanced Custom Fields', 'Plugin development', 'Custom admin UI', 'Custom CRM', 'WooCommerce', 'Beaver Builder', 'Elementor', 'Astra', 'REST API', 'SSO integration'],
+    highlight: ['Custom themes', 'Plugin development', 'Custom CRM'],
+  },
+  {
+    label: 'E-commerce platforms',
+    skills: ['Shopify', 'WooCommerce', 'Volusion', 'BigCommerce'],
+    highlight: ['Shopify', 'WooCommerce'],
   },
   {
     label: 'Marketing and analytics',

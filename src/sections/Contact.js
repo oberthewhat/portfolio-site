@@ -3,6 +3,8 @@ import './Contact.css';
 const links = [
   { icon: '✉️', label: 'Email', value: 'John.obertubbesing@gmail.com', href: 'mailto:John.obertubbesing@gmail.com' },
   { icon: '📞', label: 'Phone', value: '(512) 905-8855', href: 'tel:5129058855' },
+  { icon: '💼', label: 'LinkedIn', value: 'john-obertubbesing', href: 'https://www.linkedin.com/in/john-obertubbesing/' },
+  { icon: '🐙', label: 'GitHub', value: 'oberthewhat', href: 'https://github.com/oberthewhat' },
   { icon: '▶️', label: 'YouTube', value: '@thrillnerds', href: 'https://www.youtube.com/@thrillnerds' },
   { icon: '📸', label: 'Instagram', value: '@thrillnerds', href: 'https://www.instagram.com/thrillnerds/' },
 ];

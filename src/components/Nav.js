@@ -11,7 +11,7 @@ export default function Nav() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const links = ['About', 'Work', 'Projects', 'Lab', 'ThrillNerds', 'Contact'];
+  const links = ['About', 'Work', 'Projects', 'WordPress', 'Lab', 'ThrillNerds', 'Contact'];
 
   return (
     <nav className={`nav ${scrolled ? 'nav--scrolled' : ''}`}>
