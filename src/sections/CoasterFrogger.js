@@ -8,185 +8,241 @@ const W = COLS * CELL;
 const H = ROWS * CELL;
 
 const SAFE_ROWS = new Set([0, 6, 12]);
-const FLUME_ROWS = new Set([3, 9]);
-const WATER_ROWS = new Set([3, 9]); // same as flume, water underneath logs
 
-const LOG_W = 110;
-const LOG_H = 30;
-const CAR_W = 46;
-const CAR_H = 32;
-const TRAM_W = 52;
-const TRAM_H = 36;
-const CARS_PER_TRAIN = 3;
+// Asset dimensions — scaled to fit CELL height with some padding
+const LEAD_W = 64;
+const LEAD_H = 46;
+const ROW_W  = 50;
+const ROW_H  = 46;
+const FLUME_W = 90;
+const FLUME_H = 42;
+const GUY_W  = 38;
+const GUY_H  = 44;
+
+// Skins available per type
+const COASTER_SKINS = ['red', 'blue'];
+const TRAM_SKIN = 'train';
+const FLUME_SKIN = 'flume';
+
+// Fixed rows — safe rows are 0, 6, 12. Active lanes are everything else.
+const ACTIVE_ROWS = [1, 2, 3, 4, 5, 7, 8, 9, 10, 11];
+
+function randomLaneType() {
+  const roll = Math.random();
+  if (roll < 0.45) return 'coaster';
+  if (roll < 0.70) return 'tram';
+  return 'flume';
+}
+
+function buildLaneConfig(level) {
+  // Guarantee at least 2 flumes and at least 1 of each type
+  const types = ACTIVE_ROWS.map(() => randomLaneType());
+  // Ensure at least 2 flumes
+  let flumeCount = types.filter(t => t === 'flume').length;
+  for (let i = 0; flumeCount < 2 && i < types.length; i++) {
+    if (types[i] !== 'flume') { types[i] = 'flume'; flumeCount++; }
+  }
+  // Alternate directions per row
+  return ACTIVE_ROWS.map((row, i) => {
+    const type = types[i];
+    const skin = type === 'flume' ? FLUME_SKIN : type === 'tram' ? TRAM_SKIN : COASTER_SKINS[i % 2];
+    // Vary base speed by row position — middle rows slightly faster
+    const midFactor = 1 + (Math.abs(i - 4.5) / 4.5) * 0.2;
+    const baseSpeed = type === 'flume'
+      ? randBetween(0.5, 0.75)
+      : type === 'tram'
+        ? randBetween(0.65, 1.0)
+        : randBetween(0.75, 1.35) * midFactor;
+    return {
+      row,
+      baseSpeed,
+      dir: i % 2 === 0 ? 1 : -1,
+      skin,
+      type,
+    };
+  });
+}
 
 function randBetween(a, b) { return a + Math.random() * (b - a); }
-
-// All trains in a row share the same speed
-const LANE_CONFIG = [
-  { row: 1,  baseSpeed: 0.8, dir:  1, color: '#C4521A', type: 'coaster' },
-  { row: 2,  baseSpeed: 1.1, dir: -1, color: '#4A7FA5', type: 'coaster' },
-  { row: 3,  baseSpeed: 0.7, dir:  1, color: '#2255AA', type: 'flume'   },
-  { row: 4,  baseSpeed: 0.9, dir: -1, color: '#E8842A', type: 'tram'    },
-  { row: 5,  baseSpeed: 1.3, dir:  1, color: '#9B2335', type: 'coaster' },
-  { row: 7,  baseSpeed: 0.75, dir: -1, color: '#3A6B3F', type: 'tram'   },
-  { row: 8,  baseSpeed: 1.0, dir:  1, color: '#C4521A', type: 'coaster' },
-  { row: 9,  baseSpeed: 0.6, dir: -1, color: '#2255AA', type: 'flume'   },
-  { row: 10, baseSpeed: 1.4, dir:  1, color: '#E8842A', type: 'coaster' },
-  { row: 11, baseSpeed: 0.85, dir: -1, color: '#9B2335', type: 'tram'   },
-];
+function randInt(a, b) { return Math.floor(randBetween(a, b + 1)); }
 
 function makeLaneObjects(lane, level) {
-  const levelMult = 1 + (level - 1) * 0.12;
-  // ONE speed for the whole row — randomized once
-  const rowSpeed = randBetween(lane.baseSpeed * 0.8, lane.baseSpeed * 1.2) * levelMult;
+  const levelMult = 1 + (level - 1) * 0.1;
+  const rowSpeed = randBetween(lane.baseSpeed * 0.85, lane.baseSpeed * 1.15) * levelMult;
+  const isFlume = lane.type === 'flume';
+  const count = isFlume ? randInt(3, 5) : randInt(2, 3);
+  const minGap = isFlume ? 150 : 250;
+  const maxGap = isFlume ? 300 : 420;
 
   const objects = [];
-  const isFlume = lane.type === 'flume';
-  const objW = isFlume ? LOG_W : (lane.type === 'tram' ? TRAM_W : CAR_W) * CARS_PER_TRAIN;
-  const count = isFlume ? Math.floor(randBetween(3, 5)) : Math.floor(randBetween(2, 4));
-  const minGap = isFlume ? 80 : 120;
-  const maxGap = isFlume ? 200 : 320;
 
-  let cursor = lane.dir === 1
-    ? -objW - 30
-    : W + 30;
-
+  // Build trains with known widths first
+  const trains = [];
   for (let i = 0; i < count; i++) {
-    const gap = randBetween(minGap, maxGap);
-    objects.push({
-      x: cursor,
-      speed: rowSpeed,       // same for every object in this row
-      dir: lane.dir,
-      row: lane.row,
-      color: lane.color,
-      type: lane.type,
-      w: objW,
-    });
-    cursor += lane.dir === 1
-      ? -(objW + gap)
-      : (objW + gap);
+    const rowCount = isFlume ? 0 : randInt(1, 3);
+    const objW = isFlume ? FLUME_W : LEAD_W + rowCount * ROW_W;
+    trains.push({ rowCount, w: objW });
   }
+
+  // Place sequentially with guaranteed gaps
+  // Start the first train already on screen (pre-scrolled in)
+  // so the board looks active immediately
+  let cursor;
+  if (lane.dir === 1) {
+    // Moving right — place first train already visible, rest behind left edge
+    cursor = randBetween(W * 0.1, W * 0.7);
+    for (let i = 0; i < trains.length; i++) {
+      const { rowCount, w } = trains[i];
+      const gap = randBetween(minGap, maxGap);
+      objects.push({ x: cursor, speed: rowSpeed, dir: lane.dir, row: lane.row, skin: lane.skin, type: lane.type, rowCount, w });
+      cursor -= (w + gap); // next train to the left
+    }
+  } else {
+    // Moving left — place first train already visible, rest behind right edge
+    cursor = randBetween(W * 0.1, W * 0.7) - (trains[0].w);
+    for (let i = 0; i < trains.length; i++) {
+      const { rowCount, w } = trains[i];
+      const gap = randBetween(minGap, maxGap);
+      objects.push({ x: cursor, speed: rowSpeed, dir: lane.dir, row: lane.row, skin: lane.skin, type: lane.type, rowCount, w });
+      cursor += (w + gap); // next train to the right
+    }
+  }
+
   return objects;
 }
 
-function initAllObjects(level = 1) {
-  return LANE_CONFIG.flatMap(lane => makeLaneObjects(lane, level));
+function initAllObjects(level = 1, config = null) {
+  const laneConfig = config || buildLaneConfig(level);
+  return laneConfig.flatMap(lane => makeLaneObjects(lane, level));
 }
 
-function initPlayer() { 
-  return { 
-    col: 6, 
-    row: 12, 
-    facing: 'up', 
+function initPlayer() {
+  return {
+    col: 6, row: 12,
+    pixelX: 6 * CELL + Math.floor((CELL - GUY_W) / 2),
+    state: 'stand',
     onLog: null,
-    pixelX: 6 * CELL + (CELL - 36) / 2, // track exact pixel position for log riding
-  }; 
+  };
 }
 
 const KEY_MAP = {
-  ArrowUp:    { dc: 0, dr: -1, facing: 'up'    },
-  ArrowDown:  { dc: 0, dr:  1, facing: 'down'  },
-  ArrowLeft:  { dc: -1, dr: 0, facing: 'left'  },
-  ArrowRight: { dc:  1, dr: 0, facing: 'right' },
-  w: { dc: 0, dr: -1, facing: 'up'    },
-  s: { dc: 0, dr:  1, facing: 'down'  },
-  a: { dc: -1, dr: 0, facing: 'left'  },
-  d: { dc:  1, dr: 0, facing: 'right' },
+  ArrowUp:    { dc: 0,  dr: -1 },
+  ArrowDown:  { dc: 0,  dr:  1 },
+  ArrowLeft:  { dc: -1, dr:  0 },
+  ArrowRight: { dc:  1, dr:  0 },
+  w: { dc: 0,  dr: -1 },
+  s: { dc: 0,  dr:  1 },
+  a: { dc: -1, dr:  0 },
+  d: { dc:  1, dr:  0 },
 };
 
-function drawCoasterCar(ctx, x, y, w, h, color, carIdx, totalCars) {
-  ctx.fillStyle = color;
-  ctx.beginPath(); ctx.roundRect(x + 1, y + 2, w - 2, h - 4, 5); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.18)';
-  ctx.beginPath(); ctx.roundRect(x + 3, y + 3, w - 6, (h - 6) * 0.45, 3); ctx.fill();
-  ctx.fillStyle = 'rgba(0,0,0,0.28)';
-  ctx.fillRect(x + 4, y + h * 0.52, w - 8, 3);
-  ctx.fillStyle = '#1a1610';
-  const ws = 5;
-  [[x + 4, y + 4],[x + w - 4, y + 4],[x + 4, y + h - 4],[x + w - 4, y + h - 4]].forEach(([ex, ey]) => {
-    ctx.beginPath(); ctx.ellipse(ex, ey, ws, ws * 0.55, 0, 0, Math.PI * 2); ctx.fill();
-  });
-  if (carIdx < totalCars - 1) { ctx.fillStyle = '#666'; ctx.fillRect(x + w - 2, y + h / 2 - 2, 4, 4); }
-  if (carIdx > 0)              { ctx.fillStyle = '#666'; ctx.fillRect(x - 2,     y + h / 2 - 2, 4, 4); }
-}
-
-function drawTramCar(ctx, x, y, w, h, color) {
-  ctx.fillStyle = color;
-  ctx.beginPath(); ctx.roundRect(x + 1, y + 1, w - 2, h - 2, 8); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.22)';
-  ctx.beginPath(); ctx.roundRect(x + 4, y + 4, w - 8, h * 0.38, 5); ctx.fill();
-  ctx.fillStyle = 'rgba(180,220,255,0.45)';
-  ctx.fillRect(x + 5, y + h * 0.55, w - 10, h * 0.28);
-  ctx.fillStyle = 'rgba(255,255,255,0.28)';
-  ctx.fillRect(x + 1, y + h * 0.48, w - 2, 2);
-  ctx.fillStyle = '#1a1610';
-  const ws = 5;
-  [[x + 6, y + 4],[x + w - 6, y + 4],[x + 6, y + h - 4],[x + w - 6, y + h - 4]].forEach(([ex, ey]) => {
-    ctx.beginPath(); ctx.ellipse(ex, ey, ws, ws * 0.55, 0, 0, Math.PI * 2); ctx.fill();
-  });
-}
-
-function drawLog(ctx, x, y, w, h, img) {
-  if (img) { ctx.drawImage(img, x, y, w, h); return; }
-  // Log shape — brown oval with wood grain
-  ctx.fillStyle = '#7B4A1E';
-  ctx.beginPath(); ctx.roundRect(x, y + 3, w, h - 6, h / 2 - 3); ctx.fill();
-  // Grain lines
-  ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 1.5;
-  for (let i = 1; i < 4; i++) {
-    ctx.beginPath();
-    ctx.moveTo(x + w * 0.1, y + 3 + (h - 6) * (i / 4));
-    ctx.lineTo(x + w * 0.9, y + 3 + (h - 6) * (i / 4));
-    ctx.stroke();
+// Draw a repeating track tile across a row
+function drawTrack(ctx, y, imgs, trackKey, fallbackColor) {
+  const img = imgs[trackKey];
+  if (img) {
+    // Tile horizontally
+    for (let x = 0; x < W; x += img.width * (CELL / img.height)) {
+      const tileW = img.width * (CELL / img.height);
+      ctx.drawImage(img, x, y, tileW, CELL);
+    }
+  } else {
+    ctx.fillStyle = fallbackColor;
+    ctx.fillRect(0, y, W, CELL);
   }
-  // End rings
-  ctx.fillStyle = '#5C3510';
-  ctx.beginPath(); ctx.ellipse(x + 10, y + h / 2, 8, h / 2 - 4, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#7B4A1E';
-  ctx.beginPath(); ctx.ellipse(x + 10, y + h / 2, 5, h / 2 - 7, 0, 0, Math.PI * 2); ctx.fill();
-  // Flume water in log
-  ctx.fillStyle = 'rgba(100,180,255,0.3)';
-  ctx.beginPath(); ctx.roundRect(x + 16, y + h * 0.35, w - 26, h * 0.35, 4); ctx.fill();
-  // Splash marks
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.beginPath(); ctx.arc(x + 20, y + 5, 3, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(x + w - 15, y + h - 6, 2, 0, Math.PI * 2); ctx.fill();
 }
 
-function drawGuest(ctx, x, y, size, facing, isDead, imgs) {
-  const img = isDead ? imgs['guest-hit'] : imgs[`guest-${facing}`] || imgs['guest-up'] || imgs['guest'];
-  if (img) { ctx.drawImage(img, x, y, size, size); return; }
-  const cx = x + size / 2, cy = y + size / 2;
-  ctx.fillStyle = 'rgba(0,0,0,0.15)';
-  ctx.beginPath(); ctx.ellipse(cx, cy + 4, size * 0.32, size * 0.15, 0, 0, Math.PI * 2); ctx.fill();
-  if (isDead) {
-    ctx.fillStyle = '#FAF6EF';
-    ctx.beginPath(); ctx.arc(cx, cy - 4, 9, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#C4521A'; ctx.lineWidth = 2.5;
-    [[cx-5,cy-9,cx+5,cy+1],[cx+5,cy-9,cx-5,cy+1],[cx-5,cy+1,cx+5,cy+1]].forEach(([x1,y1,x2,y2]) => {
-      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
-    });
-    ctx.fillStyle = '#E8842A';
-    ctx.beginPath(); ctx.roundRect(cx - 7, cy + 3, 14, 10, 3); ctx.fill();
+// Draw one vehicle (train or flume) using assets
+function drawVehicle(ctx, obj, imgs) {
+  const ch = obj.type === 'flume' ? FLUME_H : Math.max(LEAD_H, ROW_H);
+  const cy = obj.row * CELL + (CELL - ch) / 2;
+
+  if (obj.type === 'flume') {
+    const dirStr = obj.dir === 1 ? 'right' : 'left';
+    const img = imgs[`flume-${dirStr}`];
+    if (img) {
+      ctx.drawImage(img, obj.x, cy, FLUME_W, FLUME_H);
+    } else {
+      // Fallback
+      ctx.fillStyle = '#7B4A1E';
+      ctx.beginPath(); ctx.roundRect(obj.x, cy + 4, FLUME_W, FLUME_H - 8, 12); ctx.fill();
+      ctx.fillStyle = 'rgba(100,180,255,0.4)';
+      ctx.beginPath(); ctx.roundRect(obj.x + 12, cy + 10, FLUME_W - 24, FLUME_H - 20, 6); ctx.fill();
+    }
     return;
   }
-  const hx = facing === 'left' ? cx - 4 : facing === 'right' ? cx + 4 : cx;
-  const hy = cy - 4 + (facing === 'up' ? -5 : facing === 'down' ? 3 : 0);
-  ctx.fillStyle = '#E8842A';
-  ctx.beginPath(); ctx.ellipse(cx, cy + 3, size * 0.27, size * 0.33, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#FAF6EF';
-  ctx.beginPath(); ctx.arc(hx, hy, 8, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#5C3D1E';
-  ctx.beginPath(); ctx.arc(hx, hy - 2, 5.5, Math.PI, 0); ctx.fill();
-  ctx.fillStyle = '#C4521A';
-  ctx.beginPath(); ctx.roundRect(cx - 5, cy + 6, 10, 6, 2); ctx.fill();
+
+  // Train/coaster: lead car at front, row cars behind
+  // dir=1 (going right): lead on LEFT, rows extend RIGHT
+  // dir=-1 (going left): lead on RIGHT, rows extend LEFT
+  const skin = obj.skin; // 'red' | 'blue' | 'train'
+  const dirStr = obj.dir === 1 ? 'right' : 'left';
+  const leadImg = imgs[`${skin}Lead-${dirStr}`];
+  const rowImg  = imgs[`${skin}Row-${dirStr}`];
+
+  if (obj.dir === 1) {
+    // Going RIGHT: row cars first (left), lead car last (rightmost = front)
+    for (let r = 0; r < obj.rowCount; r++) {
+      const rx = obj.x + r * ROW_W;
+      if (rowImg) {
+        ctx.drawImage(rowImg, rx, cy, ROW_W, ROW_H);
+      } else {
+        ctx.fillStyle = '#A03A10';
+        ctx.beginPath(); ctx.roundRect(rx + 1, cy, ROW_W - 2, ROW_H, 4); ctx.fill();
+      }
+    }
+    // Lead car on the right (front)
+    const leadX = obj.x + obj.rowCount * ROW_W;
+    if (leadImg) {
+      ctx.drawImage(leadImg, leadX, cy, LEAD_W, LEAD_H);
+    } else {
+      ctx.fillStyle = '#C4521A';
+      ctx.beginPath(); ctx.roundRect(leadX, cy, LEAD_W, LEAD_H, 6); ctx.fill();
+    }
+  } else {
+    // Going LEFT: lead car first (leftmost = front), row cars to the right
+    if (leadImg) {
+      ctx.drawImage(leadImg, obj.x, cy, LEAD_W, LEAD_H);
+    } else {
+      ctx.fillStyle = '#2255AA';
+      ctx.beginPath(); ctx.roundRect(obj.x, cy, LEAD_W, LEAD_H, 6); ctx.fill();
+    }
+    for (let r = 0; r < obj.rowCount; r++) {
+      const rx = obj.x + LEAD_W + r * ROW_W;
+      if (rowImg) {
+        ctx.drawImage(rowImg, rx, cy, ROW_W, ROW_H);
+      } else {
+        ctx.fillStyle = '#4A7FA5';
+        ctx.beginPath(); ctx.roundRect(rx + 1, cy, ROW_W - 2, ROW_H, 4); ctx.fill();
+      }
+    }
+  }
+}
+
+function drawPlayer(ctx, player, imgs) {
+  const img = imgs[`guy-${player.state}`] || imgs['guy-stand'];
+  const px = player.pixelX;
+  const py = player.row * CELL + Math.floor((CELL - GUY_H) / 2);
+  if (img) {
+    ctx.drawImage(img, px, py, GUY_W, GUY_H);
+  } else {
+    const cx = px + GUY_W / 2, cy = py + GUY_H / 2;
+    ctx.fillStyle = '#FAF6EF';
+    ctx.beginPath(); ctx.arc(cx, cy - 14, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#E8842A';
+    ctx.fillRect(cx - 8, cy - 6, 16, 18);
+    ctx.fillStyle = '#FAF6EF';
+    ctx.fillRect(cx - 8, cy + 8, 6, 10);
+    ctx.fillRect(cx + 2, cy + 8, 6, 10);
+  }
 }
 
 export default function CoasterFrogger() {
   const canvasRef = useRef(null);
+  const initialConfig = buildLaneConfig(1);
   const stateRef = useRef({
     player: initPlayer(),
-    objects: initAllObjects(1),
+    laneConfig: initialConfig,
+    objects: initAllObjects(1, initialConfig),
     lives: 3, score: 0, level: 1,
     phase: 'idle',
     deathTimer: 0,
@@ -196,10 +252,20 @@ export default function CoasterFrogger() {
   const animRef = useRef(null);
   const [display, setDisplay] = useState({ lives: 3, score: 0, level: 1, phase: 'idle' });
 
+  // Load all assets
   useEffect(() => {
     const s = stateRef.current;
-    ['guest-up','guest-down','guest-left','guest-right','guest-hit','coaster-top','tram-top','log-top'].forEach(name => {
-      const img = new Image(); img.src = `/${name}.png`;
+    const assets = [
+      'redLead-right','redLead-left','redRow-right','redRow-left',
+      'blueLead-right','blueLead-left','blueRow-right','blueRow-left',
+      'trainLead-right','trainLead-left','trainRow-right','trainRow-left',
+      'flume-right','flume-left',
+      'flume-track','train-track','coaster-track',
+      'guy-stand','guy-jump','guy-hit','guy-splash','guy-win',
+    ];
+    assets.forEach(name => {
+      const img = new Image();
+      img.src = `/${name}.png`;
       img.onload = () => { s.imgs[name] = img; };
     });
   }, []);
@@ -212,53 +278,58 @@ export default function CoasterFrogger() {
   const spawnParticles = useCallback((px, py, water = false) => {
     const s = stateRef.current;
     for (let i = 0; i < 14; i++) {
-      const angle = (Math.PI * 2 * i) / 14 + Math.random() * 0.4;
+      const angle = (Math.PI * 2 * i) / 14 + Math.random() * 0.5;
       const spd = randBetween(1.5, 4.5);
       s.particles.push({
         x: px, y: py,
         vx: Math.cos(angle) * spd,
-        vy: Math.sin(angle) * spd - (water ? 2 : 0),
+        vy: Math.sin(angle) * spd - (water ? 2.5 : 0),
         life: 45, maxLife: 45,
         color: water
-          ? ['#60B8FF','#A8D8FF','#FFFFFF','#3090EE'][Math.floor(Math.random() * 4)]
-          : ['#E8842A','#C4521A','#FAF6EF','#F5C97A'][Math.floor(Math.random() * 4)],
+          ? ['#60B8FF','#A8D8FF','#FFFFFF','#3090EE'][randInt(0, 3)]
+          : ['#E8842A','#C4521A','#FAF6EF','#F5C97A'][randInt(0, 3)],
         size: randBetween(2, water ? 5 : 7),
       });
     }
   }, []);
 
-  // Check if player is on a log this frame; returns log or null
   const getLogUnder = useCallback(() => {
     const s = stateRef.current;
-    if (!FLUME_ROWS.has(s.player.row)) return null;
-    // Use pixel center of player
-    const px = s.player.pixelX + 18; // center of 36px guest
-    const py = s.player.row * CELL + CELL / 2;
+    const laneCfg = s.laneConfig.find(l => l.row === s.player.row);
+    if (laneCfg?.type !== 'flume') return null;
+    const px = s.player.pixelX + GUY_W / 2;
     for (const obj of s.objects) {
       if (obj.type !== 'flume' || obj.row !== s.player.row) continue;
-      const ch = LOG_H;
-      const top = obj.row * CELL + (CELL - ch) / 2;
-      if (px > obj.x + 2 && px < obj.x + obj.w - 2 && py > top - 4 && py < top + ch + 4) {
-        return obj;
-      }
+      if (px > obj.x + 4 && px < obj.x + obj.w - 4) return obj;
     }
     return null;
   }, []);
 
-  const checkTrainCollision = useCallback(() => {
+  const checkTrainHit = useCallback(() => {
     const s = stateRef.current;
-    if (SAFE_ROWS.has(s.player.row) || FLUME_ROWS.has(s.player.row)) return false;
-    const px = s.player.col * CELL + CELL / 2;
+    if (SAFE_ROWS.has(s.player.row)) return false;
+    const laneCfg = s.laneConfig.find(l => l.row === s.player.row);
+    if (laneCfg?.type === 'flume') return false; // flume rows don't hit
+    const px = s.player.pixelX + GUY_W / 2;
     const py = s.player.row * CELL + CELL / 2;
     for (const obj of s.objects) {
       if (obj.row !== s.player.row || obj.type === 'flume') continue;
-      const cw = obj.type === 'tram' ? TRAM_W : CAR_W;
-      const ch = obj.type === 'tram' ? TRAM_H : CAR_H;
+      const ch = LEAD_H;
       const top = obj.row * CELL + (CELL - ch) / 2;
-      if (px > obj.x + 8 && px < obj.x + obj.w - 8 && py > top + 6 && py < top + ch - 6) return true;
+      if (px > obj.x + 6 && px < obj.x + obj.w - 6 && py > top + 4 && py < top + ch - 4) return true;
     }
     return false;
   }, []);
+
+  const killPlayer = useCallback((water = false) => {
+    const s = stateRef.current;
+    s.lives--;
+    s.player.state = water ? 'splash' : 'hit';
+    s.phase = 'dead';
+    s.deathTimer = 90;
+    spawnParticles(s.player.pixelX + GUY_W / 2, s.player.row * CELL + CELL / 2, water);
+    sync();
+  }, [spawnParticles, sync]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -273,86 +344,61 @@ export default function CoasterFrogger() {
     for (let r = 0; r < ROWS; r++) {
       const y = r * CELL;
       if (r === 0) {
-        ctx.fillStyle = '#2D5A32';
-        ctx.fillRect(0, y, W, CELL);
-        ctx.fillStyle = 'rgba(255,255,255,0.06)';
-        for (let c = 0; c < COLS; c++) ctx.fillRect(c * CELL + 14, y + 16, 5, 5);
-        ctx.fillStyle = 'rgba(232,132,42,0.75)';
-        ctx.font = 'bold 11px DM Sans, sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText('🎢  PARK ENTRANCE  🎢', W / 2, y + CELL / 2 + 4);
-        ctx.textAlign = 'left';
+        // Park entrance
+        ctx.fillStyle = '#2D5A32'; ctx.fillRect(0, y, W, CELL);
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+        for (let c = 0; c < COLS; c++) { ctx.fillRect(c * CELL + 10, y + 14, 6, 6); ctx.fillRect(c * CELL + 32, y + 30, 5, 5); }
+        ctx.fillStyle = 'rgba(232,132,42,0.85)'; ctx.font = 'bold 12px DM Sans, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('🎢  PARK ENTRANCE  🎢', W / 2, y + CELL / 2 + 4); ctx.textAlign = 'left';
       } else if (r === 6) {
+        // Mid safe zone
         ctx.fillStyle = '#3D3530'; ctx.fillRect(0, y, W, CELL);
-        ctx.strokeStyle = 'rgba(232,132,42,0.35)'; ctx.lineWidth = 2; ctx.setLineDash([8, 6]);
+        ctx.strokeStyle = 'rgba(232,132,42,0.3)'; ctx.lineWidth = 2; ctx.setLineDash([10, 7]);
         ctx.beginPath(); ctx.moveTo(0, y + CELL / 2); ctx.lineTo(W, y + CELL / 2); ctx.stroke();
         ctx.setLineDash([]);
-        ctx.fillStyle = 'rgba(232,132,42,0.6)'; ctx.font = '10px DM Sans, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(232,132,42,0.5)'; ctx.font = '10px DM Sans, sans-serif'; ctx.textAlign = 'center';
         ctx.fillText('SAFE ZONE', W / 2, y + CELL / 2 + 4); ctx.textAlign = 'left';
       } else if (r === 12) {
+        // Start — parking lot
         ctx.fillStyle = '#35302B'; ctx.fillRect(0, y, W, CELL);
+        // Parking space lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1; ctx.setLineDash([]);
+        for (let c = 1; c < COLS; c++) { ctx.beginPath(); ctx.moveTo(c * CELL, y + 4); ctx.lineTo(c * CELL, y + CELL - 4); ctx.stroke(); }
         ctx.fillStyle = 'rgba(253,249,243,0.3)'; ctx.font = '10px DM Sans, sans-serif'; ctx.textAlign = 'center';
         ctx.fillText('PARKING LOT — START HERE', W / 2, y + CELL / 2 + 4); ctx.textAlign = 'left';
-      } else if (FLUME_ROWS.has(r)) {
-        // Water channel
-        ctx.fillStyle = '#1244AA'; ctx.fillRect(0, y, W, CELL);
-        // Animated water ripples
-        const t = Date.now() / 800;
-        for (let c = 0; c < W; c += 28) {
-          ctx.fillStyle = 'rgba(100,180,255,0.15)';
-          ctx.fillRect(c + Math.sin(t + c * 0.05) * 4, y + 8, 18, 3);
-          ctx.fillRect(c + 12 + Math.sin(t * 1.3 + c * 0.05) * 4, y + CELL - 12, 14, 3);
-        }
-        ctx.fillStyle = 'rgba(100,200,255,0.2)'; ctx.font = '10px DM Sans, sans-serif'; ctx.textAlign = 'right';
-        ctx.fillText('🌊 LOG FLUME — ride the log!', W - 8, y + CELL - 8); ctx.textAlign = 'left';
       } else {
-        // Track lane
-        ctx.fillStyle = r % 2 === 0 ? '#1C1814' : '#201C18';
-        ctx.fillRect(0, y, W, CELL);
-        ctx.fillStyle = 'rgba(255,255,255,0.07)';
-        ctx.fillRect(0, y + 6, W, 2); ctx.fillRect(0, y + CELL - 8, W, 2);
-        ctx.fillStyle = 'rgba(255,255,255,0.03)';
-        for (let c = 0; c < COLS; c++) ctx.fillRect(c * CELL + CELL * 0.3, y + 8, 4, CELL - 16);
-        const lane = LANE_CONFIG.find(l => l.row === r);
-        if (lane) {
-          ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.font = '10px DM Sans, sans-serif'; ctx.textAlign = 'right';
-          ctx.fillText(lane.type === 'tram' ? '🚃 TRAM' : '🎢 COASTER', W - 8, y + CELL - 8);
-          ctx.textAlign = 'left';
-        }
-      }
-    }
-
-    // Draw objects
-    for (const obj of s.objects) {
-      const ch = obj.type === 'flume' ? LOG_H : (obj.type === 'tram' ? TRAM_H : CAR_H);
-      const cy = obj.row * CELL + (CELL - ch) / 2;
-
-      if (obj.type === 'flume') {
-        ctx.save();
-        if (obj.dir === -1) { ctx.scale(-1, 1); drawLog(ctx, -obj.x - obj.w, cy, obj.w, ch, s.imgs['log-top']); }
-        else drawLog(ctx, obj.x, cy, obj.w, ch, s.imgs['log-top']);
-        ctx.restore();
-      } else {
-        const cw = obj.type === 'tram' ? TRAM_W : CAR_W;
-        ctx.save();
-        if (obj.dir === -1) {
-          ctx.scale(-1, 1);
-          for (let i = 0; i < CARS_PER_TRAIN; i++) {
-            const cx = -(obj.x + i * cw + cw);
-            if (obj.type === 'tram') drawTramCar(ctx, cx, cy, cw, ch, obj.color);
-            else drawCoasterCar(ctx, cx, cy, cw, ch, obj.color, i, CARS_PER_TRAIN);
+        // Active lane — look up type from laneConfig
+        const laneCfg = s.laneConfig.find(l => l.row === r);
+        if (laneCfg?.type === 'flume') {
+          // Water channel
+          ctx.fillStyle = '#0D3A8A'; ctx.fillRect(0, y, W, CELL);
+          drawTrack(ctx, y, s.imgs, 'flume-track', '#0D3A8A');
+          const t = Date.now() / 900;
+          for (let c = 0; c < W; c += 30) {
+            ctx.fillStyle = 'rgba(120,190,255,0.12)';
+            ctx.fillRect(c + Math.sin(t + c * 0.04) * 5, y + 7, 20, 3);
+            ctx.fillRect(c + 14 + Math.sin(t * 1.2 + c * 0.04) * 5, y + CELL - 11, 15, 3);
           }
+          ctx.fillStyle = 'rgba(100,190,255,0.25)'; ctx.font = '10px DM Sans, sans-serif'; ctx.textAlign = 'right';
+          ctx.fillText('🌊 LOG FLUME', W - 8, y + CELL - 8); ctx.textAlign = 'left';
         } else {
-          for (let i = 0; i < CARS_PER_TRAIN; i++) {
-            const cx = obj.x + i * cw;
-            if (obj.type === 'tram') drawTramCar(ctx, cx, cy, cw, ch, obj.color);
-            else drawCoasterCar(ctx, cx, cy, cw, ch, obj.color, i, CARS_PER_TRAIN);
+          const trackKey = laneCfg?.type === 'tram' ? 'train-track' : 'coaster-track';
+          const fallback = r % 2 === 0 ? '#1C1814' : '#201C18';
+          drawTrack(ctx, y, s.imgs, trackKey, fallback);
+          if (!s.imgs[trackKey]) {
+            ctx.fillStyle = 'rgba(255,255,255,0.07)';
+            ctx.fillRect(0, y + 6, W, 2); ctx.fillRect(0, y + CELL - 8, W, 2);
           }
         }
-        ctx.restore();
       }
     }
 
-    // Particles
+    // Draw vehicles
+    for (const obj of s.objects) {
+      drawVehicle(ctx, obj, s.imgs);
+    }
+
+    // Draw particles
     s.particles = s.particles.filter(p => p.life > 0);
     for (const p of s.particles) {
       ctx.globalAlpha = p.life / p.maxLife;
@@ -362,14 +408,12 @@ export default function CoasterFrogger() {
     }
     ctx.globalAlpha = 1;
 
-    // Player
-    const px = s.player.pixelX;
-    const py = s.player.row * CELL + (CELL - 36) / 2;
-    drawGuest(ctx, px, py, 36, s.player.facing, s.phase === 'dead', s.imgs);
+    // Draw player
+    drawPlayer(ctx, s.player, s.imgs);
 
     // Overlays
     const overlay = (title, sub, cta, titleColor = '#FAF6EF') => {
-      ctx.fillStyle = 'rgba(26,20,16,0.9)'; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = 'rgba(22,17,13,0.86)'; ctx.fillRect(0, 0, W, H);
       ctx.fillStyle = titleColor; ctx.font = 'bold 26px Fraunces, serif'; ctx.textAlign = 'center';
       ctx.fillText(title, W / 2, H / 2 - 36);
       ctx.fillStyle = 'rgba(253,249,243,0.6)'; ctx.font = '15px DM Sans, sans-serif';
@@ -378,7 +422,17 @@ export default function CoasterFrogger() {
       ctx.fillText(cta, W / 2, H / 2 + 42); ctx.textAlign = 'left';
     };
 
-    if (s.phase === 'idle') overlay('Coaster Crossing', 'Dodge trains. Ride logs. Reach the park.', 'Arrow keys or WASD to start');
+    if (s.phase === 'idle') {
+      ctx.fillStyle = 'rgba(22,17,13,0.78)'; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#FAF6EF'; ctx.font = 'bold 26px Fraunces, serif'; ctx.textAlign = 'center';
+      ctx.fillText('Coaster Crossing', W / 2, H / 2 - 36);
+      ctx.fillStyle = 'rgba(253,249,243,0.6)'; ctx.font = '15px DM Sans, sans-serif';
+      ctx.fillText('Dodge trains. Ride the flume. Reach the park.', W / 2, H / 2 + 2);
+      ctx.fillStyle = '#E8842A'; ctx.font = 'bold 14px DM Sans, sans-serif';
+      ctx.fillText('Space to start · tap on mobile', W / 2, H / 2 + 42);
+      ctx.textAlign = 'left';
+      drawPlayer(ctx, s.player, s.imgs);
+    }
     if (s.phase === 'gameover') overlay('Flattened.', `Score: ${s.score}  |  Level ${s.level}`, 'Press R to try again', '#C4521A');
     if (s.phase === 'levelup') overlay(`Level ${s.level}!`, `Score: ${s.score}`, 'Get ready...', '#E8842A');
   }, []);
@@ -387,76 +441,63 @@ export default function CoasterFrogger() {
     const s = stateRef.current;
 
     if (s.phase === 'playing' || s.phase === 'dead' || s.phase === 'levelup') {
-      // Move all objects
+      // Move all objects — wrap with large buffer to prevent overlap
       for (const obj of s.objects) {
         obj.x += obj.speed * obj.dir;
-        if (obj.dir === 1 && obj.x > W + 20) obj.x = -obj.w - 20;
-        if (obj.dir === -1 && obj.x < -obj.w - 20) obj.x = W + 20;
+        const buf = obj.w + 300;
+        if (obj.dir === 1 && obj.x > W + buf) obj.x = -buf;
+        if (obj.dir === -1 && obj.x + obj.w < -buf) obj.x = W + buf;
       }
 
-      // Flume: carry player on log
-      if (s.phase === 'playing' && FLUME_ROWS.has(s.player.row)) {
+      // Flume carry
+      const playerLane = s.laneConfig.find(l => l.row === s.player.row);
+      if (s.phase === 'playing' && playerLane?.type === 'flume') {
         const log = getLogUnder();
         if (log) {
-          // Move player pixel position with the log
           s.player.pixelX += log.speed * log.dir;
-          // Derive col from pixel position
-          s.player.col = Math.floor((s.player.pixelX + 18) / CELL);
+          s.player.col = Math.floor((s.player.pixelX + GUY_W / 2) / CELL);
           s.player.onLog = log;
-          // Fell off screen edge
-          if (s.player.pixelX < -36 || s.player.pixelX > W + 10) {
-            s.lives--;
-            s.phase = 'dead'; s.deathTimer = 80;
-            spawnParticles(s.player.pixelX + 18, s.player.row * CELL + CELL / 2, true);
-            sync();
+          if (s.player.pixelX < -GUY_W || s.player.pixelX > W + 10) {
+            killPlayer(true);
           }
         } else {
-          // Standing in water with no log = drown
-          s.lives--;
-          s.phase = 'dead'; s.deathTimer = 80;
-          spawnParticles(s.player.pixelX + 18, s.player.row * CELL + CELL / 2, true);
-          s.player.onLog = null;
-          sync();
+          killPlayer(true);
         }
       } else {
         s.player.onLog = null;
-        // Keep pixelX in sync with col when not on log
-        s.player.pixelX = s.player.col * CELL + (CELL - 36) / 2;
+        s.player.pixelX = s.player.col * CELL + (CELL - GUY_W) / 2;
       }
 
-      // Death timer
+      // Train hit
+      if (s.phase === 'playing' && checkTrainHit()) {
+        killPlayer(false);
+      }
+
+      // Timers
       if (s.phase === 'dead') {
         s.deathTimer--;
         if (s.deathTimer <= 0) {
-          s.phase = s.lives <= 0 ? 'gameover' : 'playing';
-          if (s.phase === 'playing') s.player = initPlayer();
+          if (s.lives <= 0) { s.phase = 'gameover'; }
+          else { s.player = initPlayer(); s.phase = 'playing'; }
           sync();
         }
       }
-
-      // Level up timer
       if (s.phase === 'levelup') {
         s.deathTimer--;
         if (s.deathTimer <= 0) {
-          s.objects = initAllObjects(s.level);
+          const newConfig = buildLaneConfig(s.level);
+          s.laneConfig = newConfig;
+          s.objects = initAllObjects(s.level, newConfig);
           s.player = initPlayer();
           s.phase = 'playing';
           sync();
         }
       }
-
-      // Train collision
-      if (s.phase === 'playing' && checkTrainCollision()) {
-        s.lives--;
-        s.phase = 'dead'; s.deathTimer = 80;
-        spawnParticles(s.player.col * CELL + CELL / 2, s.player.row * CELL + CELL / 2, false);
-        sync();
-      }
     }
 
     draw();
     animRef.current = requestAnimationFrame(gameLoop);
-  }, [draw, checkTrainCollision, getLogUnder, sync, spawnParticles]);
+  }, [draw, checkTrainHit, getLogUnder, killPlayer, sync]);
 
   useEffect(() => {
     animRef.current = requestAnimationFrame(gameLoop);
@@ -465,29 +506,37 @@ export default function CoasterFrogger() {
 
   const handleKey = useCallback((e) => {
     const s = stateRef.current;
-    const move = KEY_MAP[e.key];
 
     if ((e.key === 'r' || e.key === 'R') && s.phase === 'gameover') {
-      Object.assign(s, { lives: 3, score: 0, level: 1, player: initPlayer(), objects: initAllObjects(1), particles: [], phase: 'playing' });
+      const newConfig = buildLaneConfig(1);
+      Object.assign(s, { lives: 3, score: 0, level: 1, player: initPlayer(), laneConfig: newConfig, objects: initAllObjects(1, newConfig), particles: [], phase: 'playing' });
       sync(); return;
     }
 
+    if (e.key === ' ' && s.phase === 'idle') {
+      e.preventDefault();
+      s.phase = 'playing'; sync(); return;
+    }
+
+    const move = KEY_MAP[e.key];
     if (!move) return;
     e.preventDefault();
-
     if (s.phase === 'idle') { s.phase = 'playing'; sync(); }
     if (s.phase !== 'playing') return;
 
-    s.player.facing = move.facing;
+    s.player.state = 'jump';
+    setTimeout(() => { if (stateRef.current.player.state === 'jump') stateRef.current.player.state = 'stand'; }, 200);
+
     const newCol = Math.max(0, Math.min(COLS - 1, s.player.col + move.dc));
     const newRow = Math.max(0, Math.min(ROWS - 1, s.player.row + move.dr));
     s.player.col = newCol;
     s.player.row = newRow;
-    // Reset pixelX to grid position when moving (log carry will take over if on flume)
-    s.player.pixelX = s.player.col * CELL + (CELL - 36) / 2;
+    s.player.pixelX = s.player.col * CELL + (CELL - GUY_W) / 2;
+
     if (move.dr === -1) { s.score += 10; sync(); }
 
     if (s.player.row === 0) {
+      s.player.state = 'win';
       s.score += 200 + s.level * 50;
       s.level++;
       s.phase = 'levelup';
@@ -496,9 +545,36 @@ export default function CoasterFrogger() {
     }
   }, [sync]);
 
-  const handleBtn = useCallback((key) => {
-    handleKey({ key, preventDefault: () => {} });
-  }, [handleKey]);
+  const handleBtn = useCallback((key) => handleKey({ key, preventDefault: () => {} }), [handleKey]);
+
+  // Swipe to move on mobile
+  const touchRef = useRef(null);
+
+  const handleTouchStart = useCallback((e) => {
+    touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    const s = stateRef.current;
+    if (s.phase === 'idle') { s.phase = 'playing'; sync(); }
+    if (s.phase === 'gameover') {
+      const newConfig = buildLaneConfig(1);
+      Object.assign(s, { lives: 3, score: 0, level: 1, player: initPlayer(), laneConfig: newConfig, objects: initAllObjects(1, newConfig), particles: [], phase: 'playing' });
+      sync();
+    }
+  }, [sync]);
+
+  const handleTouchEnd = useCallback((e) => {
+    const s = stateRef.current;
+    if (!touchRef.current || s.phase !== 'playing') return;
+    const dx = e.changedTouches[0].clientX - touchRef.current.x;
+    const dy = e.changedTouches[0].clientY - touchRef.current.y;
+    touchRef.current = null;
+    const absDx = Math.abs(dx), absDy = Math.abs(dy);
+    if (absDx < 8 && absDy < 8) return;
+    if (absDx > absDy) {
+      handleBtn(dx > 0 ? 'ArrowRight' : 'ArrowLeft');
+    } else {
+      handleBtn(dy > 0 ? 'ArrowDown' : 'ArrowUp');
+    }
+  }, [handleBtn]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKey);
@@ -516,24 +592,37 @@ export default function CoasterFrogger() {
             <span className="hud-label">Lives</span>
             <span className="hud-val lives-row">
               {Array.from({ length: 3 }).map((_, i) => (
-                <span key={i} className={i < display.lives ? 'life-on' : 'life-off'}>🎢</span>
+                <span key={i} style={{ opacity: i < display.lives ? 1 : 0.2 }}>🎢</span>
               ))}
             </span>
           </div>
         </div>
       </div>
       <div className="frogger-canvas-wrap">
-        <canvas ref={canvasRef} width={W} height={H} className="frogger-canvas" tabIndex={0} />
+        <canvas
+          ref={canvasRef}
+          width={W} height={H}
+          className="frogger-canvas"
+          tabIndex={0}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        />
       </div>
       <div className="frogger-controls">
-        <div className="ctrl-row"><button className="ctrl-btn" onClick={() => handleBtn('ArrowUp')}>▲</button></div>
+        <div className="ctrl-row">
+          <button className="ctrl-btn" onClick={() => handleBtn('ArrowUp')}>▲</button>
+        </div>
         <div className="ctrl-row">
           <button className="ctrl-btn" onClick={() => handleBtn('ArrowLeft')}>◀</button>
           <button className="ctrl-btn" onClick={() => handleBtn('ArrowDown')}>▼</button>
           <button className="ctrl-btn" onClick={() => handleBtn('ArrowRight')}>▶</button>
         </div>
       </div>
-      <p className="frogger-hint">Arrow keys or WASD · Ride the logs across the flume · R to restart</p>
+      <p className="frogger-hint">
+        <strong>Desktop:</strong> Space to start · Arrow keys or WASD to move · R to restart
+        &nbsp;·&nbsp;
+        <strong>Mobile:</strong> Tap to start · Swipe to move · buttons above
+      </p>
     </div>
   );
 }

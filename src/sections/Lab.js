@@ -7,9 +7,6 @@ export default function Lab() {
       <div className="container">
         <div className="section-eyebrow">The lab</div>
         <h2 className="section-title serif">Things I built for fun.</h2>
-        <p className="section-sub">
-          This is where I mess around. No client briefs, no deliverables. Just things I wanted to build because I thought they'd be interesting or fun.
-        </p>
       </div>
 
       <div className="lab-game-wrap">
