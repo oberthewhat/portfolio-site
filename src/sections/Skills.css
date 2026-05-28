@@ -42,3 +42,7 @@
   color: var(--rust);
   font-weight: 600;
 }
+
+#skills {
+  padding: 5rem 0;
+}

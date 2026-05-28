@@ -1,6 +1,8 @@
 .thrillnerds-section {
   background: var(--charcoal);
   padding: 5rem 0;
+  position: relative;
+  z-index: 0;
 }
 
 .tn-card {

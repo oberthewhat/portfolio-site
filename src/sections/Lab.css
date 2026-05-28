@@ -1,0 +1,48 @@
+#lab {
+  padding: 5rem 0 0;
+}
+
+.lab-game-wrap {
+  margin-top: 3rem;
+  background: var(--warm-white);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 3rem 0;
+}
+
+.lab-game-intro {
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lab-game-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--amber-pale);
+  color: var(--rust);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 4px 12px;
+  border-radius: 100px;
+  width: fit-content;
+}
+
+.lab-game-title {
+  font-family: 'Fraunces', serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--charcoal);
+  letter-spacing: -0.5px;
+}
+
+.lab-game-desc {
+  color: var(--mid);
+  font-size: 14px;
+  line-height: 1.7;
+  max-width: 520px;
+}

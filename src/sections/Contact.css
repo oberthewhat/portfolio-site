@@ -65,3 +65,5 @@
 @media (max-width: 680px) {
   .contact-wrap { grid-template-columns: 1fr; gap: 2rem; }
 }
+
+#contact { padding: 5rem 0; }

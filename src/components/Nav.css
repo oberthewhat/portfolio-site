@@ -6,6 +6,7 @@
   z-index: 100;
   transition: background 0.3s, box-shadow 0.3s;
   padding: 0 2rem;
+  background: transparent;
 }
 
 .nav--scrolled {
@@ -27,9 +28,14 @@
   font-family: 'Fraunces', serif;
   font-size: 22px;
   font-weight: 700;
-  color: var(--charcoal);
+  color: var(--warm-white);
   text-decoration: none;
   letter-spacing: -0.5px;
+  transition: color 0.3s;
+}
+
+.nav--scrolled .nav-logo {
+  color: var(--charcoal);
 }
 
 .nav-logo span { color: var(--amber); }
@@ -43,13 +49,18 @@
 
 .nav-links a {
   text-decoration: none;
-  color: var(--mid);
+  color: rgba(253, 249, 243, 0.75);
   font-size: 14px;
   font-weight: 500;
   transition: color 0.2s;
 }
 
+.nav--scrolled .nav-links a {
+  color: var(--mid);
+}
+
 .nav-links a:hover { color: var(--amber); }
+.nav--scrolled .nav-links a:hover { color: var(--amber); }
 
 .nav-cta {
   background: var(--amber) !important;

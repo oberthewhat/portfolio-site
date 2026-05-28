@@ -74,8 +74,8 @@ export default function Hero() {
             </div>
             <div className="stat-divider" />
             <div className="stat">
-              <div className="stat-num serif">133</div>
-              <div className="stat-label">Blusiast members</div>
+              <div className="stat-num serif">3</div>
+              <div className="stat-label">Frameworks I work in daily</div>
             </div>
             <div className="stat-divider" />
             <div className="stat">

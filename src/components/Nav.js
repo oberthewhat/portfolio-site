@@ -11,13 +11,13 @@ export default function Nav() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const links = ['About', 'Work', 'Projects', 'ThrillNerds', 'Contact'];
+  const links = ['About', 'Work', 'Projects', 'Lab', 'ThrillNerds', 'Contact'];
 
   return (
     <nav className={`nav ${scrolled ? 'nav--scrolled' : ''}`}>
       <div className="nav-inner">
         <a href="#top" className="nav-logo">
-          john<span>.</span>
+          obertubbesing<span>.</span>dev
         </a>
         <ul className={`nav-links ${menuOpen ? 'nav-links--open' : ''}`}>
           {links.map(l => (

@@ -1,6 +1,8 @@
 .hero {
   background: var(--charcoal);
   padding-top: 64px;
+  margin-bottom: 0;
+  height: fit-content;
 }
 
 .hero-inner {
@@ -163,6 +165,7 @@
 .hero-stats {
   background: var(--warm-white);
   border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .hero-stats-inner {

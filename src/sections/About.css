@@ -1,8 +1,17 @@
+#about {
+  padding: 5rem 0;
+  background: var(--cream);
+  position: relative;
+  z-index: 1;
+  padding-top: 0;
+}
+
 .about-grid {
   display: grid;
   grid-template-columns: 300px 1fr;
   gap: 4rem;
   align-items: start;
+  padding-top: 4rem;
 }
 
 .about-photo-wrap {

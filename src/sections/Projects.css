@@ -1,3 +1,8 @@
+#projects {
+  padding: 5rem 0;
+  background: var(--cream);
+}
+
 .projects-list {
   display: flex;
   flex-direction: column;

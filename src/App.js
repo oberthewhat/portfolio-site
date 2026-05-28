@@ -5,6 +5,7 @@ import About from './sections/About';
 import Skills from './sections/Skills';
 import Work from './sections/Work';
 import Projects from './sections/Projects';
+import Lab from './sections/Lab';
 import ThrillNerds from './sections/ThrillNerds';
 import Contact from './sections/Contact';
 import Footer from './components/Footer';
@@ -13,11 +14,8 @@ function App() {
   return (
     <>
       <Nav />
-      <main>
+      <main style={{background: 'var(--cream)', overflow: 'hidden'}}>
         <Hero />
-        <div className="container" style={{maxWidth:'880px',margin:'0 auto'}}>
-          <hr className="divider" />
-        </div>
         <About />
         <div className="container" style={{maxWidth:'880px',margin:'0 auto'}}>
           <hr className="divider" />
@@ -31,11 +29,15 @@ function App() {
           <hr className="divider" />
         </div>
         <Projects />
-        <ThrillNerds />
+        <div className="container" style={{maxWidth:'880px',margin:'0 auto'}}>
+          <hr className="divider" />
+        </div>
+        <Lab />
         <div className="container" style={{maxWidth:'880px',margin:'0 auto'}}>
           <hr className="divider" />
         </div>
         <Contact />
+        <ThrillNerds />
       </main>
       <Footer />
     </>
