@@ -112,14 +112,20 @@
   margin-bottom: 1.5rem;
 }
 
-.tn-coming-soon {
+.tn-live-link {
   display: inline-block;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 6px 16px;
+  padding: 8px 18px;
   border-radius: 100px;
-  background: rgba(232, 132, 42, 0.18);
-  color: var(--amber-light);
+  background: var(--amber);
+  color: white;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.tn-live-link:hover {
+  background: var(--rust);
 }
 
 @media (max-width: 680px) {

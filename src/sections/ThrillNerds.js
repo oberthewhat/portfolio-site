@@ -4,7 +4,7 @@ const platforms = [
   { icon: '▶️', name: 'YouTube', handle: '@thrillnerds', url: 'https://www.youtube.com/@thrillnerds', desc: 'Videos, reviews, and park visits' },
   { icon: '📸', name: 'Instagram', handle: '@thrillnerds', url: 'https://www.instagram.com/thrillnerds/', desc: 'Photos and reels from the parks' },
   { icon: '🎵', name: 'TikTok', handle: '@thrillnerds', url: 'https://www.tiktok.com/@thrillnerds', desc: 'Short-form coaster content' },
-  { icon: '🌐', name: 'Website', handle: 'thrillnerds.com', url: 'https://thrillnerds.com', desc: 'Coming soon, built in React' },
+  { icon: '🌐', name: 'Website', handle: 'thrillnerds.com', url: 'https://thrillnerds.com', desc: 'The ThrillNerds home base' },
 ];
 
 export default function ThrillNerds() {
@@ -45,7 +45,9 @@ export default function ThrillNerds() {
               <div className="tn-logo-big">🎢</div>
               <div className="tn-logo-label serif">ThrillNerds</div>
               <div className="tn-logo-sub">Amusement park content</div>
-              <div className="tn-coming-soon">thrillnerds.com coming soon</div>
+              <a href="https://thrillnerds.com" target="_blank" rel="noopener noreferrer" className="tn-live-link">
+                Visit thrillnerds.com →
+              </a>
             </div>
           </div>
         </div>
