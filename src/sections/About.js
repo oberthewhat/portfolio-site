@@ -34,7 +34,7 @@ export default function About() {
               What I actually enjoy is the intersection of good code and real business results. I like knowing that the site I built is ranking well, converting visitors, and making someone's business better.
             </p>
             <p className="about-p">
-              Outside of work, I'm pretty deep into the amusement park world. I run ThrillNerds on YouTube, Instagram, and TikTok, I co-founded Blusiast, and I built a couple of real platforms in the industry because I just couldn't help myself.
+              Outside of work, I'm pretty deep into the amusement park world. I run ThrillNerds on YouTube, Instagram, and TikTok, and I built a couple of real platforms in the industry because I just couldn't help myself.
             </p>
 
             <div className="hobbies-grid">
