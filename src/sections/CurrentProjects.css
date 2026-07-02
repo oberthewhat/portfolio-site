@@ -1,0 +1,104 @@
+.current-projects {
+  background: var(--cream, #faf6f0);
+}
+
+.current-projects-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.current-eyebrow {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--amber, #c97b2d);
+  margin-bottom: 8px;
+}
+
+.current-intro {
+  color: var(--mid, #6b6259);
+  max-width: 560px;
+  margin-bottom: 40px;
+}
+
+.current-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.current-card {
+  background: #fff;
+  border: 1px solid var(--border, #e8e0d5);
+  border-radius: 10px;
+  padding: 28px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.current-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(40, 35, 30, 0.08);
+}
+
+.current-card h3 {
+  margin: 14px 0 10px;
+}
+
+.current-card p {
+  color: var(--mid, #6b6259);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.current-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--rust, #a4502a);
+  background: rgba(201, 123, 45, 0.1);
+  padding: 5px 12px;
+  border-radius: 999px;
+}
+
+.current-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--rust, #a4502a);
+  animation: current-pulse 2s ease-in-out infinite;
+}
+
+@keyframes current-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .current-status-dot { animation: none; }
+  .current-card,
+  .current-card:hover { transform: none; transition: none; }
+}
+
+.current-tags {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 0;
+  padding: 0;
+}
+
+.current-tags li {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--charcoal, #2b2620);
+  background: var(--cream, #faf6f0);
+  border: 1px solid var(--border, #e8e0d5);
+  padding: 4px 10px;
+  border-radius: 6px;
+}

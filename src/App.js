@@ -10,6 +10,7 @@ import Lab from './sections/Lab';
 import ThrillNerds from './sections/ThrillNerds';
 import Contact from './sections/Contact';
 import Footer from './components/Footer';
+import CurrentProjects from './sections/CurrentProjects';
 
 function App() {
   return (
@@ -34,9 +35,9 @@ function App() {
           <hr className="divider" />
         </div>
         <Projects />
-        <div className="container" style={{maxWidth:'880px',margin:'0 auto'}}>
-          <hr className="divider" />
-        </div>
+
+        <CurrentProjects /> 
+
         <Lab />
         <div className="container" style={{maxWidth:'880px',margin:'0 auto'}}>
           <hr className="divider" />

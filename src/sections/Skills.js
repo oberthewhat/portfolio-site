@@ -26,6 +26,11 @@ const skillGroups = [
     skills: ['Git / GitHub', 'Figma', 'Webpack', 'Postman', 'Jira', 'Agile / Scrum', 'Chrome DevTools'],
     highlight: [],
   },
+  {
+  label: 'Mobile',
+  skills: ['React Native', 'Expo (EAS builds)', 'App Store deployment', 'Google Play deployment', 'Apple Developer Program'],
+  highlight: ['React Native', 'Expo (EAS builds)'],
+}
 ];
 
 export default function Skills() {
